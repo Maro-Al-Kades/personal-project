@@ -1,3 +1,4 @@
+import { AddToCartAction } from "@/actions/store/cart.actions";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,7 +13,7 @@ export default async function StorePage({
 
   if (!slug) return notFound();
 
-  const store = await prisma.store.findUnique({
+  const store = await prisma.store.findFirst({
     where: { slug },
     include: { products: true },
   });
@@ -55,10 +56,21 @@ export default async function StorePage({
               <h2 className="text-lg font-semibold">{product.name}</h2>
 
               <p className="text-gray-600">{product.price} EGP</p>
-              
+
               <Link href={`/store/${store.slug}/product/${product.slug}`}>
                 View Product
               </Link>
+
+              <form
+                action={async () => {
+                  "use server";
+                  await AddToCartAction(store.slug, product.id);
+                }}
+              >
+                <button className="mt-4 w-full bg-black text-white py-2 rounded-md">
+                  Add to Cart
+                </button>
+              </form>
             </div>
           ))}
         </div>
