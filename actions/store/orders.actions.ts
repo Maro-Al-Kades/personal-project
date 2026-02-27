@@ -1,9 +1,9 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { MustUserID } from "@/actions/auth/auth-helpers.actions";
 import { redirect } from "next/navigation";
 import type { PaymentMethodKey } from "@/constants/payment-methods";
+import { MustSession } from "../auth/auth-helpers.actions";
 
 export async function CreateOrderAction(
   storeSlug: string,
@@ -12,9 +12,9 @@ export async function CreateOrderAction(
     phone: string;
     address: string;
     paymentMethod: PaymentMethodKey;
-  }
+  },
 ) {
-  const userId = await MustUserID();
+  const { guestSessionId } = await MustSession();
 
   if (!storeSlug) throw new Error("storeSlug is missing");
 
@@ -26,16 +26,17 @@ export async function CreateOrderAction(
   if (!store) throw new Error("Store not found");
 
   const cartItems = await prisma.cartItem.findMany({
-    where: { userId, storeId: store.id },
+    where: { guestSessionId, storeId: store.id },
     include: { product: { select: { id: true, price: true, name: true } } },
   });
 
   if (cartItems.length === 0) throw new Error("Cart is empty");
 
-  const subtotal = cartItems.reduce(
-    (acc, item) => acc + item.product.price * item.quantity,
-    0
-  );
+  // لأن Order.subtotal/total Int (قروش)
+  const subtotal = cartItems.reduce((acc, item) => {
+    const priceInCents = Math.round(item.product.price * 100);
+    return acc + priceInCents * item.quantity;
+  }, 0);
 
   const shipping = 0;
   const total = subtotal + shipping;
@@ -43,23 +44,24 @@ export async function CreateOrderAction(
   const order = await prisma.$transaction(async (tx) => {
     const created = await tx.order.create({
       data: {
-        userId,
+        guestSessionId,
         storeId: store.id,
 
-        // ✅ ده لازم يكون موجود في Prisma model كـ String
         paymentMethod: data.paymentMethod,
-
         status: "PENDING",
+
         subtotal,
         shipping,
         total,
+
         fullName: data.fullName,
         phone: data.phone,
         address: data.address,
+
         items: {
           create: cartItems.map((item) => ({
             productId: item.productId,
-            price: item.product.price,
+            price: Math.round(item.product.price * 100),
             quantity: item.quantity,
           })),
         },
@@ -68,7 +70,7 @@ export async function CreateOrderAction(
     });
 
     await tx.cartItem.deleteMany({
-      where: { userId, storeId: store.id },
+      where: { guestSessionId, storeId: store.id },
     });
 
     return created;

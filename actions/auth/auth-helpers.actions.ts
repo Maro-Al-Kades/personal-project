@@ -1,12 +1,6 @@
-import { cookies } from "next/headers";
+import { GetGuestSessionId } from "./guest.actions";
 
-export async function MustUserID() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("sessionToken")?.value;
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
-  return userId;
+export async function MustSession() {
+  const guestSessionId = await GetGuestSessionId();
+  return { guestSessionId };
 }

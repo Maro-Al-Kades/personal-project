@@ -1,67 +1,55 @@
+"use server";
+
 import { prisma } from "@/lib/prisma";
-import { MustUserID } from "../auth/auth-helpers.actions";
 import { revalidatePath } from "next/cache";
+import { MustSession } from "../auth/auth-helpers.actions";
 
 export async function AddToCartAction(storeSlug: string, productId: string) {
-  const userId = await MustUserID();
+  const { guestSessionId } = await MustSession();
 
-  // Bring store
   const store = await prisma.store.findUnique({
-    where: {
-      slug: storeSlug,
-    },
+    where: { slug: storeSlug },
+    select: { id: true, slug: true },
   });
 
-  if (!store) {
-    throw new Error("Store not found");
-  }
+  if (!store) throw new Error("Store not found");
 
-  // Bring Product
   const product = await prisma.product.findFirst({
     where: {
       id: productId,
       storeId: store.id,
     },
+    select: { id: true },
   });
 
-  if (!product) {
-    throw new Error("Product not found");
-  }
+  if (!product) throw new Error("Product not found");
 
-  // Add to cart (or update quantity if already in cart)
   await prisma.cartItem.upsert({
     where: {
-      userId_productId: { userId, productId },
-    },
-
-    update: {
-      quantity: {
-        increment: 1,
+      guestSessionId_productId: {
+        guestSessionId,
+        productId,
       },
     },
-
+    update: {
+      quantity: { increment: 1 },
+    },
     create: {
-      userId,
+      guestSessionId,
       storeId: store.id,
       productId,
       quantity: 1,
     },
   });
 
-  return {
-    success: true,
-  };
+  return { success: true };
 }
 
 export async function GetCartItemsAction(storeSlug: string) {
-  const userId = await MustUserID();
+  const { guestSessionId } = await MustSession();
 
-  // Bring Store
   const store = await prisma.store.findFirst({
-    where: {
-      slug: storeSlug,
-    },
-
+    where: { slug: storeSlug },
     select: {
       id: true,
       slug: true,
@@ -69,16 +57,13 @@ export async function GetCartItemsAction(storeSlug: string) {
     },
   });
 
-  if (!store) {
-    throw new Error("Store not found");
-  }
+  if (!store) throw new Error("Store not found");
 
   const items = await prisma.cartItem.findMany({
     where: {
-      userId,
+      guestSessionId,
       storeId: store.id,
     },
-
     include: {
       product: {
         select: {
@@ -89,7 +74,6 @@ export async function GetCartItemsAction(storeSlug: string) {
         },
       },
     },
-
     orderBy: { createdAt: "desc" },
   });
 
@@ -101,10 +85,10 @@ export async function UpdateCartItemQtyAction(
   storeSlug: string,
   type: "increment" | "decrement",
 ) {
-  const userId = await MustUserID();
+  const { guestSessionId } = await MustSession();
 
   const cartItem = await prisma.cartItem.findFirst({
-    where: { id: cartItemId, userId },
+    where: { id: cartItemId, guestSessionId },
     select: { id: true, quantity: true },
   });
 
@@ -112,7 +96,9 @@ export async function UpdateCartItemQtyAction(
 
   if (type === "decrement") {
     if (cartItem.quantity <= 1) {
-      await prisma.cartItem.delete({ where: { id: cartItemId } });
+      await prisma.cartItem.delete({
+        where: { id: cartItemId },
+      });
       revalidatePath(`/store/${storeSlug}/cart`);
       return { deleted: true };
     }
@@ -139,10 +125,10 @@ export async function RemoveCartItemAction(
   cartItemId: string,
   storeSlug: string,
 ) {
-  const userId = await MustUserID();
+  const { guestSessionId } = await MustSession();
 
   await prisma.cartItem.deleteMany({
-    where: { id: cartItemId, userId },
+    where: { id: cartItemId, guestSessionId },
   });
 
   revalidatePath(`/store/${storeSlug}/cart`);

@@ -47,9 +47,8 @@ model Product {
 }
 
 model CartItem {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  id             String @id @default(uuid())
+  guestSessionId String
 
   storeId String
   store   Store  @relation(fields: [storeId], references: [id])
@@ -57,35 +56,37 @@ model CartItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
-  quantity Int @default(1)
-
+  quantity  Int      @default(1)
   createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
 
-  @@unique([userId, productId])
+  @@unique([guestSessionId, productId])
 }
 
 model Order {
   id String @id @default(uuid())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  guestSessionId String
 
   storeId String
   store   Store  @relation(fields: [storeId], references: [id])
 
-  status OrderStatus @default(PENDING)
+  status        OrderStatus @default(PENDING)
+  paymentMethod String
 
   subtotal Int
   shipping Int @default(0)
   total    Int
 
-  fullName      String
-  phone         String
-  address       String
-  paymentMethod String
+  fullName String
+  phone    String
+  address  String
 
   createdAt DateTime    @default(now())
   items     OrderItem[]
+  user      User?       @relation(fields: [userId], references: [id])
+  userId    String?
 }
 
 model OrderItem {

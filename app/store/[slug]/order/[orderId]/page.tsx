@@ -1,5 +1,15 @@
+import { MustSession } from "@/actions/auth/auth-helpers.actions";
 import { prisma } from "@/lib/prisma";
-import { MustUserID } from "@/actions/auth/auth-helpers.actions";
+
+function formatEGPFromCents(cents: number) {
+  // cents -> EGP
+  const egp = cents / 100;
+  return new Intl.NumberFormat("ar-EG", {
+    style: "currency",
+    currency: "EGP",
+    maximumFractionDigits: 2,
+  }).format(egp);
+}
 
 export default async function OrderDetailsPage({
   params,
@@ -7,12 +17,13 @@ export default async function OrderDetailsPage({
   params: Promise<{ slug: string; orderId: string }>;
 }) {
   const { slug, orderId } = await params;
-  const userId = await MustUserID();
+
+  const { guestSessionId } = await MustSession();
 
   const order = await prisma.order.findFirst({
     where: {
       id: orderId,
-      userId,
+      guestSessionId,
       store: { slug },
     },
     include: {
@@ -41,16 +52,19 @@ export default async function OrderDetailsPage({
             <div>
               <div className="font-semibold">{it.product.name}</div>
               <div className="text-sm opacity-80">
-                {it.quantity} × {it.price}
+                {it.quantity} × {formatEGPFromCents(it.price)}
               </div>
             </div>
-            <div className="font-semibold">{it.quantity * it.price}</div>
+
+            <div className="font-semibold">
+              {formatEGPFromCents(it.quantity * it.price)}
+            </div>
           </div>
         ))}
       </div>
 
       <div className="mt-6 border-t pt-4 font-bold text-xl">
-        Total: {order.total}
+        Total: {formatEGPFromCents(order.total)}
       </div>
     </div>
   );
