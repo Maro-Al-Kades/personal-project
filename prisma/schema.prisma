@@ -75,8 +75,8 @@ model Product {
   storeId String
   store   Store   @relation(fields: [storeId], references: [id])
 
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
 
   isActive   Boolean @default(true)
   isFeatured Boolean @default(false)

@@ -1,8 +1,19 @@
 import { MustSession } from "@/actions/auth/auth-helpers.actions";
 import { prisma } from "@/lib/prisma";
 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
 function formatEGPFromCents(cents: number) {
-  // cents -> EGP
   const egp = cents / 100;
   return new Intl.NumberFormat("ar-EG", {
     style: "currency",
@@ -33,39 +44,68 @@ export default async function OrderDetailsPage({
   });
 
   if (!order) {
-    return <div className="wrapper py-10">Order not found</div>;
+    return <div className="wrapper py-10">لم يتم العثور على الطلب</div>;
   }
 
   return (
-    <div className="wrapper py-10">
-      <h1 className="h2-bold mb-2">Order Confirmed ✅</h1>
-      <p className="mb-6 opacity-80">
-        Store: {order.store.name} — Order ID: {order.id}
-      </p>
+    <div className="wrapper py-10 max-w-2xl" dir="rtl">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>تم تأكيد الطلب ✅</CardTitle>
+            <Badge variant="secondary">مؤكد</Badge>
+          </div>
 
-      <div className="space-y-3">
-        {order.items.map((it) => (
-          <div
-            key={it.id}
-            className="border rounded-xl p-4 flex justify-between"
-          >
-            <div>
-              <div className="font-semibold">{it.product.name}</div>
-              <div className="text-sm opacity-80">
-                {it.quantity} × {formatEGPFromCents(it.price)}
+          <CardDescription className="mt-2">
+            المتجر: <span className="font-medium">{order.store.name}</span>
+            {" — "}
+            رقم الطلب: <span className="font-mono">{order.id}</span>
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Items */}
+          <div className="space-y-3">
+            {order.items.map((it) => (
+              <div
+                key={it.id}
+                className="flex items-start justify-between gap-4 border rounded-xl p-4"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">
+                    {it.product.name}
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {it.quantity} × {formatEGPFromCents(it.price)}
+                  </div>
+                </div>
+
+                <div className="font-bold whitespace-nowrap">
+                  {formatEGPFromCents(it.quantity * it.price)}
+                </div>
               </div>
-            </div>
+            ))}
+          </div>
 
-            <div className="font-semibold">
-              {formatEGPFromCents(it.quantity * it.price)}
+          <Separator />
+
+          {/* Total */}
+          <div className="flex items-center justify-between">
+            <div className="text-base font-semibold">الإجمالي</div>
+            <div className="text-xl font-bold">
+              {formatEGPFromCents(order.total)}
             </div>
           </div>
-        ))}
-      </div>
 
-      <div className="mt-6 border-t pt-4 font-bold text-xl">
-        Total: {formatEGPFromCents(order.total)}
-      </div>
+          <p className="text-xs text-muted-foreground">
+            هنتواصل معاك لتأكيد تفاصيل الطلب والتسليم.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Button asChild>
+        <Link href={`/store/${slug}`}>العودة إلى المتجر</Link>
+      </Button>
     </div>
   );
 }

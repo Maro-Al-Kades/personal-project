@@ -5,6 +5,10 @@ import {
   UpdateCartItemQtyAction,
 } from "@/actions/store/cart.actions";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+
 export default async function CartPage({
   params,
 }: {
@@ -17,123 +21,147 @@ export default async function CartPage({
   }, 0);
 
   return (
-    <div className="wrapper py-10">
+    <div className="wrapper py-10" dir="rtl">
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="h2-bold">Cart — {store.name}</h1>
+        <div>
+          <h1 className="text-2xl font-bold">سلة المشتريات</h1>
+          <p className="text-sm text-muted-foreground">متجر: {store.name}</p>
+        </div>
 
         {items.length > 0 && (
-          <Link
-            href={`/store/${store.slug}/checkout`}
-            className="bg-black text-white px-4 py-2 rounded-xl text-sm font-medium"
-          >
-            Checkout
-          </Link>
+          <Button asChild>
+            <Link href={`/store/${store.slug}/checkout`}>إتمام الشراء</Link>
+          </Button>
         )}
       </div>
 
       {items.length === 0 ? (
-        <div className="border rounded-xl p-6">
-          <p>السلة فاضية.</p>
-          <Link
-            href={`/store/${store.slug}`}
-            className="inline-block mt-4 underline text-sm"
-          >
-            رجوع للمتجر
-          </Link>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>السلة فاضية</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              مفيش منتجات مضافة للسلة حاليًا.
+            </p>
+            <Button asChild variant="outline">
+              <Link href={`/store/${store.slug}`}>رجوع للمتجر</Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
+          {/* Items */}
           <div className="space-y-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4"
-              >
-                <div className="flex-1">
-                  <p className="font-semibold">{item.product.name}</p>
-                  <p className="text-sm opacity-80">
-                    Qty: {item.quantity} — Price: {item.product.price}
-                  </p>
-                </div>
+            {items.map((item) => {
+              const lineTotal = item.product.price * item.quantity;
 
-                <div className="font-semibold min-w-[110px] text-right">
-                  {item.product.price * item.quantity} EGP
-                </div>
+              return (
+                <Card key={item.id}>
+                  <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">
+                        {item.product.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        الكمية: {item.quantity} — السعر: {item.product.price} جنيه
+                      </p>
+                    </div>
 
-                {/* Qty Controls */}
-                <div className="flex items-center gap-2">
-                  <form
-                    action={async () => {
-                      "use server";
-                      await UpdateCartItemQtyAction(
-                        item.id,
-                        store.slug,
-                        "decrement",
-                      );
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="h-9 w-9 rounded-lg border text-lg"
-                      aria-label="Decrease quantity"
+                    {/* Line total */}
+                    <div className="font-bold min-w-[130px] text-left sm:text-center">
+                      {lineTotal} جنيه
+                    </div>
+
+                    {/* Qty Controls */}
+                    <div className="flex items-center gap-2">
+                      <form
+                        action={async () => {
+                          "use server";
+                          await UpdateCartItemQtyAction(
+                            item.id,
+                            store.slug,
+                            "decrement",
+                          );
+                        }}
+                      >
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          size="icon"
+                          aria-label="تقليل الكمية"
+                        >
+                          -
+                        </Button>
+                      </form>
+
+                      <span className="min-w-[28px] text-center font-semibold">
+                        {item.quantity}
+                      </span>
+
+                      <form
+                        action={async () => {
+                          "use server";
+                          await UpdateCartItemQtyAction(
+                            item.id,
+                            store.slug,
+                            "increment",
+                          );
+                        }}
+                      >
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          size="icon"
+                          aria-label="زيادة الكمية"
+                        >
+                          +
+                        </Button>
+                      </form>
+                    </div>
+
+                    {/* Remove */}
+                    <form
+                      action={async () => {
+                        "use server";
+                        await RemoveCartItemAction(item.id, store.slug);
+                      }}
                     >
-                      -
-                    </button>
-                  </form>
+                      <Button type="submit" variant="destructive">
+                        حذف
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-                  <span className="min-w-[24px] text-center font-semibold">
-                    {item.quantity}
-                  </span>
-
-                  <form
-                    action={async () => {
-                      "use server";
-                      await UpdateCartItemQtyAction(
-                        item.id,
-                        store.slug,
-                        "increment",
-                      );
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="h-9 w-9 rounded-lg border text-lg"
-                      aria-label="Increase quantity"
-                    >
-                      +
-                    </button>
-                  </form>
+          {/* Total */}
+          <Card className="mt-8">
+            <CardContent className="p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="text-xl font-bold">
+                  الإجمالي: {total} جنيه
                 </div>
 
-                {/* Remove */}
-                <form
-                  action={async () => {
-                    "use server";
-                    await RemoveCartItemAction(item.id, store.slug);
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className="text-red-600 text-sm font-medium underline"
-                  >
-                    Remove
-                  </button>
-                </form>
+                <Button asChild className="w-full sm:w-auto">
+                  <Link href={`/store/${store.slug}/checkout`}>
+                    المتابعة لإتمام الشراء
+                  </Link>
+                </Button>
               </div>
-            ))}
-          </div>
 
-          {/* Total + Checkout */}
-          <div className="mt-8 border rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="text-xl font-bold">Total: {total} EGP</div>
+              <Separator className="my-4" />
 
-            <Link
-              href={`/store/${store.slug}/checkout`}
-              className="bg-black text-white px-5 py-3 rounded-xl text-sm font-medium text-center"
-            >
-              Proceed to Checkout
-            </Link>
-          </div>
+              <p className="text-xs text-muted-foreground">
+                ملاحظة: الدفع والتأكيد هيتم عن طريق التواصل مع التاجر بعد إرسال
+                بيانات الطلب.
+              </p>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
