@@ -74,6 +74,15 @@ const MerchantDashboardRoute = async () => {
       </form>
 
       <LogoutButton />
+
+      <div className="mt-6">
+        <a
+          href="/dashboard/categories"
+          className="bg-black text-white px-4 py-2 rounded-md"
+        >
+          view Categories
+        </a>
+      </div>
     </div>
   );
 };

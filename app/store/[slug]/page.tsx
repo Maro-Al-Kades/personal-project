@@ -75,6 +75,13 @@ export default async function StorePage({
           ))}
         </div>
       )}
+
+      <Link
+        href={`/store/${store.slug}/categories`}
+        className="px-4 py-2 rounded-xl border"
+      >
+        View Categories
+      </Link>
     </div>
   );
 }
